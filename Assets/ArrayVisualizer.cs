@@ -6,6 +6,7 @@ using UnityEngine;
 public class ArrayVisualizer : MonoBehaviour
 {
     public Vector2 view_size = Vector2.one;
+    AudioSource audio_source => FindAnyObjectByType<AudioSource>();
     public Sprite sprite;
 
     List<GameObject> array_elements = new List<GameObject>();
@@ -43,6 +44,14 @@ public class ArrayVisualizer : MonoBehaviour
                 current_highlighted_index = i;
             }
         }
+
+        // val:max = pitch:maxpitch
+        //pitch = (val*maxpitch)/max
+
+        if(highlight_index >= 0 && highlight_index < arr.Length){
+            audio_source.pitch = ((float)arr[highlight_index]*4f)/(float)arr.Max() - 1f;
+            audio_source.Play();
+        }
     }
 
     GameObject CreateNewArrayElement(int index, int value, int max_value, int max_count)
@@ -68,6 +77,16 @@ public class ArrayVisualizer : MonoBehaviour
         float y = -view_size.y/2 + size_y*value/2;
         element.transform.localPosition = new Vector2(x, y);
         element.transform.localScale = new Vector3(size_x, size_y*value);
+    }
+
+    public void Reset()
+    {
+        foreach (GameObject obj in array_elements)
+        {
+            Destroy(obj);
+        }
+        array_elements = new List<GameObject>();
+        current_highlighted_index = -1;
     }
 
     private void OnDrawGizmos() {
