@@ -384,10 +384,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8c6f5fb949a5f0f47a94645633fa0c30, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  sort_type: 3
-  array_size: 1024
-  value_range: {x: 1, y: 1024}
-  step_time_ms: 1
+  sort_type: 0
+  array_size: 4
+  value_range: {x: 1, y: 4}
 --- !u!1 &1417285327
 GameObject:
   m_ObjectHideFlags: 0
@@ -432,7 +431,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ebf5cef1ec4324243b2cb8885675d2e0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  view_size: {x: 17, y: 9.5}
+  view_size: {x: 15, y: 8}
   sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
