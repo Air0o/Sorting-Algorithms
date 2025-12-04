@@ -49,9 +49,14 @@ public class ArrayVisualizer : MonoBehaviour
         //pitch = (val*maxpitch)/max
 
         if(highlight_index >= 0 && highlight_index < arr.Length){
-            audio_source.pitch = ((float)arr[highlight_index]*4f)/(float)arr.Max() - 1f;
+            audio_source.pitch = MapValue(arr[highlight_index], arr.Max(), 3f);//((float)arr[highlight_index]*4f)/(float)arr.Max() - 1f;
             audio_source.Play();
         }
+    }
+    public static float MapValue(float value, float oldMax, float newMax)
+    {
+        if (oldMax == 0) return 0; // avoid division by zero
+        return (value / oldMax) * newMax;
     }
 
     GameObject CreateNewArrayElement(int index, int value, int max_value, int max_count)
