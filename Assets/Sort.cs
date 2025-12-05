@@ -131,69 +131,72 @@ public static class Sort_Animated
 
         visualizer.VisualizeArray(arr, -1);
     }
-    public static IEnumerator QuickSort(ArrayVisualizer visualizer, int[] arr, int step_time_ms)
+public static IEnumerator QuickSort(ArrayVisualizer visualizer, int[] arr, int step_time_ms)
+{
+    sortStats = new SortStats(0, 0, Time.time);
+    manager.UpdateStats(sortStats);
+
+    IEnumerator Sort(int left, int right)
     {
-        sortStats = new SortStats(0, 0, Time.time);
-        manager.UpdateStats(sortStats);
-        IEnumerator Sort(int left, int right)
+        if (left < right)
         {
-            if (left < right)
+            // --- Find median value of subarray ---
+            int length = right - left + 1;
+            int[] sub = new int[length];
+            Array.Copy(arr, left, sub, 0, length);
+
+            Array.Sort(sub); // O(n log n), but ensures exact median
+            int pivot = sub[length / 2]; // median value
+
+            // --- Partition around median value ---
+            int i = left;
+            int j = right;
+            while (i <= j)
             {
-                sortStats.read_count++;
-                int pivot = arr[right];
-                int i = left - 1;
+                while (arr[i] < pivot) { sortStats.read_count++; i++; }
+                while (arr[j] > pivot) { sortStats.read_count++; j--; }
 
-                for (int j = left; j < right; j++)
+                if (i <= j)
                 {
-                    if (step_time_ms != 0)
-                    {
-                        visualizer.VisualizeArray(arr, j);
-                        manager.UpdateStats(sortStats);
-                        yield return new WaitForSeconds(step_time_ms / 1000f);
-                    }
-
-                    sortStats.read_count++;
-                    if (arr[j] <= pivot)
-                    {
-                        i++;
-                        sortStats.read_count += 2;
-                        sortStats.write_count += 2;
-                        int temp = arr[i];
-                        arr[i] = arr[j];
-                        arr[j] = temp;
-                    }
+                    sortStats.read_count += 2;
+                    sortStats.write_count += 2;
+                    (arr[i], arr[j]) = (arr[j], arr[i]);
+                    i++;
+                    j--;
                 }
 
-                // Place pivot in correct position
-                sortStats.read_count += 2;
-                sortStats.write_count += 2;
-                int t = arr[i + 1];
-                arr[i + 1] = arr[right];
-                arr[right] = t;
-
-                int pivotIndex = i + 1;
-
-                // If step_time_ms == 0, visualize once per partition step
-                if (step_time_ms == 0)
+                if (step_time_ms != 0)
                 {
-                    visualizer.VisualizeArray(arr, pivotIndex);
+                    visualizer.VisualizeArray(arr, i);
                     manager.UpdateStats(sortStats);
-                    yield return null;
+                    yield return new WaitForSeconds(step_time_ms / 1000f);
                 }
-
-                IEnumerator leftSort = Sort(left, pivotIndex - 1);
-                while (leftSort.MoveNext()) yield return leftSort.Current;
-
-                IEnumerator rightSort = Sort(pivotIndex + 1, right);
-                while (rightSort.MoveNext()) yield return rightSort.Current;
             }
+
+            // Visualization rule for outer loop
+            if (step_time_ms == 0)
+            {
+                visualizer.VisualizeArray(arr, (left + right) / 2);
+                manager.UpdateStats(sortStats);
+                yield return null;
+            }
+
+            // Recurse left and right halves
+            IEnumerator leftSort = Sort(left, j);
+            while (leftSort.MoveNext()) yield return leftSort.Current;
+
+            IEnumerator rightSort = Sort(i, right);
+            while (rightSort.MoveNext()) yield return rightSort.Current;
         }
-
-        IEnumerator mainSort = Sort(0, arr.Length - 1);
-        while (mainSort.MoveNext()) yield return mainSort.Current;
-
-        visualizer.VisualizeArray(arr, -1);
     }
+
+    IEnumerator mainSort = Sort(0, arr.Length - 1);
+    while (mainSort.MoveNext()) yield return mainSort.Current;
+
+    visualizer.VisualizeArray(arr, -1);
+}
+
+
     public static IEnumerator BogoSort(ArrayVisualizer visualizer, int[] arr, int step_time_ms)
     {
         sortStats = new SortStats(0, 0, Time.time);
