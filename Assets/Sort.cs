@@ -407,7 +407,7 @@ public static class Sort_Animated
         int left = 2 * i + 1;
         int right = 2 * i + 2;
 
-        sortStats.write_count += 4;
+        sortStats.read_count += 4;
         if (left < n && arr[left] > arr[largest])
             largest = left;
 
@@ -675,90 +675,101 @@ public static class Sort_Animated
             while (second.MoveNext()) yield return second.Current;
         }
     }
-public static IEnumerator RadixSort(ArrayVisualizer visualizer, int[] arr, int step_time_ms)
-{
-    int max = arr.Max();
-
-    for (int exp = 1; max / exp > 0; exp *= 10)
+    public static IEnumerator RadixSort(ArrayVisualizer visualizer, int[] arr, int step_time_ms)
     {
-        IEnumerator sort = CountingSortByDigit(arr, exp, visualizer, step_time_ms);
-        while (sort.MoveNext()) yield return sort.Current;
+        sortStats = new SortStats(0, 0, Time.time);
+        manager.UpdateStats(sortStats);
+        int max = arr.Max();
 
-        // Outer visualization per digit pass if step_time_ms == 0
+        for (int exp = 1; max / exp > 0; exp *= 10)
+        {
+            IEnumerator sort = CountingSortByDigit(arr, exp, visualizer, step_time_ms);
+            while (sort.MoveNext()) yield return sort.Current;
+
+            // Outer visualization per digit pass if step_time_ms == 0
+            if (step_time_ms == 0)
+            {
+                visualizer.VisualizeArray(arr, exp);
+        manager.UpdateStats(sortStats);
+                yield return null;
+            }
+        }
+
+        // Final visualization
+        visualizer.VisualizeArray(arr, -1);
+    }
+
+    private static IEnumerator CountingSortByDigit(int[] arr, int exp,
+                                                   ArrayVisualizer visualizer, int step_time_ms)
+    {
+        int n = arr.Length;
+        int[] output = new int[n];
+        int[] count = new int[10];
+
+        // Count occurrences
+        for (int i = 0; i < n; i++)
+        {
+            sortStats.read_count ++;
+            int digit = (arr[i] / exp) % 10;
+            count[digit]++;
+
+            if (step_time_ms != 0)
+            {
+                visualizer.VisualizeArray(arr, i);
+        manager.UpdateStats(sortStats);
+                yield return new WaitForSeconds(step_time_ms / 1000f);
+            }
+        }
+
         if (step_time_ms == 0)
         {
+            // Show after counting phase
             visualizer.VisualizeArray(arr, exp);
             yield return null;
         }
-    }
 
-    // Final visualization
-    visualizer.VisualizeArray(arr, -1);
-}
+        // Compute cumulative count
+        for (int i = 1; i < 10; i++)
+            count[i] += count[i - 1];
 
-private static IEnumerator CountingSortByDigit(int[] arr, int exp,
-                                               ArrayVisualizer visualizer, int step_time_ms)
-{
-    int n = arr.Length;
-    int[] output = new int[n];
-    int[] count = new int[10];
-
-    // Count occurrences
-    for (int i = 0; i < n; i++)
-    {
-        int digit = (arr[i] / exp) % 10;
-        count[digit]++;
-
-        if (step_time_ms != 0)
+        // Build output
+        for (int i = n - 1; i >= 0; i--)
         {
-            visualizer.VisualizeArray(arr, i);
-            yield return new WaitForSeconds(step_time_ms / 1000f);
+            sortStats.read_count ++;
+            int digit = (arr[i] / exp) % 10;
+            output[count[digit] - 1] = arr[i];
+            count[digit]--;
+
+            if (step_time_ms != 0)
+            {
+                visualizer.VisualizeArray(output, count[digit]);
+        manager.UpdateStats(sortStats);
+                yield return new WaitForSeconds(step_time_ms / 1000f);
+            }
+        }
+
+        if (step_time_ms == 0)
+        {
+            // Show after output is built
+            visualizer.VisualizeArray(output, exp);
+        manager.UpdateStats(sortStats);
+            yield return null;
+        }
+
+        
+        sortStats.write_count += n;
+        // Copy back
+        for (int i = 0; i < n; i++)
+            arr[i] = output[i];
+
+        if (step_time_ms == 0)
+        {
+            // Show after copy back
+            visualizer.VisualizeArray(arr, exp);
+        manager.UpdateStats(sortStats);
+            yield return null;
         }
     }
-
-    if (step_time_ms == 0)
-    {
-        // Show after counting phase
-        visualizer.VisualizeArray(arr, exp);
-        yield return null;
-    }
-
-    // Compute cumulative count
-    for (int i = 1; i < 10; i++)
-        count[i] += count[i - 1];
-
-    // Build output
-    for (int i = n - 1; i >= 0; i--)
-    {
-        int digit = (arr[i] / exp) % 10;
-        output[count[digit] - 1] = arr[i];
-        count[digit]--;
-
-        if (step_time_ms != 0)
-        {
-            visualizer.VisualizeArray(output, count[digit]);
-            yield return new WaitForSeconds(step_time_ms / 1000f);
-        }
-    }
-
-    if (step_time_ms == 0)
-    {
-        // Show after output is built
-        visualizer.VisualizeArray(output, exp);
-        yield return null;
-    }
-
-    // Copy back
-    for (int i = 0; i < n; i++)
-        arr[i] = output[i];
-
-    if (step_time_ms == 0)
-    {
-        // Show after copy back
-        visualizer.VisualizeArray(arr, exp);
-        yield return null;
-    }
-}
 
 
 }
