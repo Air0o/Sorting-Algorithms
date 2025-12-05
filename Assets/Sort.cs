@@ -4,6 +4,7 @@ using Unity.VisualScripting.Antlr3.Runtime.Misc;
 using UnityEngine;
 using System.Collections.Generic;
 using System;
+using System.Linq;
 
 public static class Sort_Animated
 {
@@ -131,70 +132,70 @@ public static class Sort_Animated
 
         visualizer.VisualizeArray(arr, -1);
     }
-public static IEnumerator QuickSort(ArrayVisualizer visualizer, int[] arr, int step_time_ms)
-{
-    sortStats = new SortStats(0, 0, Time.time);
-    manager.UpdateStats(sortStats);
-
-    IEnumerator Sort(int left, int right)
+    public static IEnumerator QuickSort(ArrayVisualizer visualizer, int[] arr, int step_time_ms)
     {
-        if (left < right)
+        sortStats = new SortStats(0, 0, Time.time);
+        manager.UpdateStats(sortStats);
+
+        IEnumerator Sort(int left, int right)
         {
-            // --- Find median value of subarray ---
-            int length = right - left + 1;
-            int[] sub = new int[length];
-            Array.Copy(arr, left, sub, 0, length);
-
-            Array.Sort(sub); // O(n log n), but ensures exact median
-            int pivot = sub[length / 2]; // median value
-
-            // --- Partition around median value ---
-            int i = left;
-            int j = right;
-            while (i <= j)
+            if (left < right)
             {
-                while (arr[i] < pivot) { sortStats.read_count++; i++; }
-                while (arr[j] > pivot) { sortStats.read_count++; j--; }
+                // --- Find median value of subarray ---
+                int length = right - left + 1;
+                int[] sub = new int[length];
+                Array.Copy(arr, left, sub, 0, length);
 
-                if (i <= j)
+                Array.Sort(sub); // O(n log n), but ensures exact median
+                int pivot = sub[length / 2]; // median value
+
+                // --- Partition around median value ---
+                int i = left;
+                int j = right;
+                while (i <= j)
                 {
-                    sortStats.read_count += 2;
-                    sortStats.write_count += 2;
-                    (arr[i], arr[j]) = (arr[j], arr[i]);
-                    i++;
-                    j--;
+                    while (arr[i] < pivot) { sortStats.read_count++; i++; }
+                    while (arr[j] > pivot) { sortStats.read_count++; j--; }
+
+                    if (i <= j)
+                    {
+                        sortStats.read_count += 2;
+                        sortStats.write_count += 2;
+                        (arr[i], arr[j]) = (arr[j], arr[i]);
+                        i++;
+                        j--;
+                    }
+
+                    if (step_time_ms != 0)
+                    {
+                        visualizer.VisualizeArray(arr, i);
+                        manager.UpdateStats(sortStats);
+                        yield return new WaitForSeconds(step_time_ms / 1000f);
+                    }
                 }
 
-                if (step_time_ms != 0)
+                // Visualization rule for outer loop
+                if (step_time_ms == 0)
                 {
-                    visualizer.VisualizeArray(arr, i);
+                    visualizer.VisualizeArray(arr, (left + right) / 2);
                     manager.UpdateStats(sortStats);
-                    yield return new WaitForSeconds(step_time_ms / 1000f);
+                    yield return null;
                 }
+
+                // Recurse left and right halves
+                IEnumerator leftSort = Sort(left, j);
+                while (leftSort.MoveNext()) yield return leftSort.Current;
+
+                IEnumerator rightSort = Sort(i, right);
+                while (rightSort.MoveNext()) yield return rightSort.Current;
             }
-
-            // Visualization rule for outer loop
-            if (step_time_ms == 0)
-            {
-                visualizer.VisualizeArray(arr, (left + right) / 2);
-                manager.UpdateStats(sortStats);
-                yield return null;
-            }
-
-            // Recurse left and right halves
-            IEnumerator leftSort = Sort(left, j);
-            while (leftSort.MoveNext()) yield return leftSort.Current;
-
-            IEnumerator rightSort = Sort(i, right);
-            while (rightSort.MoveNext()) yield return rightSort.Current;
         }
+
+        IEnumerator mainSort = Sort(0, arr.Length - 1);
+        while (mainSort.MoveNext()) yield return mainSort.Current;
+
+        visualizer.VisualizeArray(arr, -1);
     }
-
-    IEnumerator mainSort = Sort(0, arr.Length - 1);
-    while (mainSort.MoveNext()) yield return mainSort.Current;
-
-    visualizer.VisualizeArray(arr, -1);
-}
 
 
     public static IEnumerator BogoSort(ArrayVisualizer visualizer, int[] arr, int step_time_ms)
@@ -517,6 +518,248 @@ public static IEnumerator QuickSort(ArrayVisualizer visualizer, int[] arr, int s
         // Final visualization
         visualizer.VisualizeArray(arr, -1);
     }
+    public static IEnumerator PancakeSort(ArrayVisualizer visualizer, int[] arr, int step_time_ms)
+    {
+        sortStats = new SortStats(0, 0, Time.time);
+        manager.UpdateStats(sortStats);
+        int n = arr.Length;
+
+        // Work down from the full array size
+        for (int currSize = n; currSize > 1; currSize--)
+        {
+            // Find index of the maximum element in arr[0..currSize-1]
+            int maxIndex = FindMaxIndex(arr, currSize);
+
+            // If max is not at the end, flip twice
+            if (maxIndex != currSize - 1)
+            {
+                // Flip max to front
+                Flip(arr, maxIndex);
+
+                if (step_time_ms != 0)
+                {
+                    visualizer.VisualizeArray(arr, maxIndex);
+                    manager.UpdateStats(sortStats);
+                    yield return new WaitForSeconds(step_time_ms / 1000f);
+                }
+
+                // Flip max to its correct position
+                Flip(arr, currSize - 1);
+
+                if (step_time_ms != 0)
+                {
+                    visualizer.VisualizeArray(arr, currSize - 1);
+                    manager.UpdateStats(sortStats);
+                    yield return new WaitForSeconds(step_time_ms / 1000f);
+                }
+            }
+
+            // Outer visualization only if step_time_ms == 0
+            if (step_time_ms == 0)
+            {
+                visualizer.VisualizeArray(arr, currSize);
+                manager.UpdateStats(sortStats);
+                yield return null;
+            }
+        }
+
+        // Final visualization
+        visualizer.VisualizeArray(arr, -1);
+    }
+
+    // Helper: flip prefix of array up to index i
+    private static void Flip(int[] arr, int i)
+    {
+        int start = 0;
+        while (start < i)
+        {
+            sortStats.read_count += 2;
+            sortStats.write_count += 2;
+            int temp = arr[start];
+            arr[start] = arr[i];
+            arr[i] = temp;
+            start++;
+            i--;
+        }
+    }
+
+    // Helper: find index of max element in arr[0..n-1]
+    private static int FindMaxIndex(int[] arr, int n)
+    {
+        int maxIndex = 0;
+        for (int i = 1; i < n; i++)
+        {
+            sortStats.read_count += 2;
+            if (arr[i] > arr[maxIndex])
+                maxIndex = i;
+        }
+        return maxIndex;
+    }
+    public static IEnumerator BitonicSort(ArrayVisualizer visualizer, int[] arr, int step_time_ms)
+    {
+        sortStats = new SortStats(0, 0, Time.time);
+        manager.UpdateStats(sortStats);
+        int n = arr.Length;
+
+        // Bitonic sort requires n to be a power of 2
+        int k = 1;
+        while (k < n) k <<= 1;
+        if (k != n)
+        {
+            throw new ArgumentException("Bitonic sort requires array length to be a power of 2");
+        }
+
+        IEnumerator sort = BitonicSortRecursive(arr, 0, n, true, visualizer, step_time_ms);
+        while (sort.MoveNext()) yield return sort.Current;
+
+        // Final visualization
+        visualizer.VisualizeArray(arr, -1);
+        manager.UpdateStats(sortStats);
+    }
+
+    private static IEnumerator BitonicSortRecursive(int[] arr, int low, int count, bool ascending,
+                                                    ArrayVisualizer visualizer, int step_time_ms)
+    {
+        if (count > 1)
+        {
+            int k = count / 2;
+
+            IEnumerator first = BitonicSortRecursive(arr, low, k, true, visualizer, step_time_ms);
+            while (first.MoveNext()) yield return first.Current;
+
+            IEnumerator second = BitonicSortRecursive(arr, low + k, k, false, visualizer, step_time_ms);
+            while (second.MoveNext()) yield return second.Current;
+
+            IEnumerator merge = BitonicMerge(arr, low, count, ascending, visualizer, step_time_ms);
+            while (merge.MoveNext()) yield return merge.Current;
+
+            // Outer visualization only if step_time_ms == 0
+            if (step_time_ms == 0)
+            {
+                visualizer.VisualizeArray(arr, low);
+                manager.UpdateStats(sortStats);
+                yield return null;
+            }
+        }
+    }
+
+    private static IEnumerator BitonicMerge(int[] arr, int low, int count, bool ascending, ArrayVisualizer visualizer, int step_time_ms)
+    {
+        if (count > 1)
+        {
+            int k = count / 2;
+            for (int i = low; i < low + k; i++)
+            {
+                if ((arr[i] > arr[i + k]) == ascending)
+                {
+                    sortStats.read_count += 2;
+                    sortStats.write_count += 2;
+                    int temp = arr[i];
+                    arr[i] = arr[i + k];
+                    arr[i + k] = temp;
+                }
+
+                // Inner visualization only if step_time_ms > 0
+                if (step_time_ms != 0)
+                {
+                    visualizer.VisualizeArray(arr, i);
+                    manager.UpdateStats(sortStats);
+                    yield return new WaitForSeconds(step_time_ms / 1000f);
+                }
+            }
+
+            IEnumerator first = BitonicMerge(arr, low, k, ascending, visualizer, step_time_ms);
+            while (first.MoveNext()) yield return first.Current;
+
+            IEnumerator second = BitonicMerge(arr, low + k, k, ascending, visualizer, step_time_ms);
+            while (second.MoveNext()) yield return second.Current;
+        }
+    }
+public static IEnumerator RadixSort(ArrayVisualizer visualizer, int[] arr, int step_time_ms)
+{
+    int max = arr.Max();
+
+    for (int exp = 1; max / exp > 0; exp *= 10)
+    {
+        IEnumerator sort = CountingSortByDigit(arr, exp, visualizer, step_time_ms);
+        while (sort.MoveNext()) yield return sort.Current;
+
+        // Outer visualization per digit pass if step_time_ms == 0
+        if (step_time_ms == 0)
+        {
+            visualizer.VisualizeArray(arr, exp);
+            yield return null;
+        }
+    }
+
+    // Final visualization
+    visualizer.VisualizeArray(arr, -1);
+}
+
+private static IEnumerator CountingSortByDigit(int[] arr, int exp,
+                                               ArrayVisualizer visualizer, int step_time_ms)
+{
+    int n = arr.Length;
+    int[] output = new int[n];
+    int[] count = new int[10];
+
+    // Count occurrences
+    for (int i = 0; i < n; i++)
+    {
+        int digit = (arr[i] / exp) % 10;
+        count[digit]++;
+
+        if (step_time_ms != 0)
+        {
+            visualizer.VisualizeArray(arr, i);
+            yield return new WaitForSeconds(step_time_ms / 1000f);
+        }
+    }
+
+    if (step_time_ms == 0)
+    {
+        // Show after counting phase
+        visualizer.VisualizeArray(arr, exp);
+        yield return null;
+    }
+
+    // Compute cumulative count
+    for (int i = 1; i < 10; i++)
+        count[i] += count[i - 1];
+
+    // Build output
+    for (int i = n - 1; i >= 0; i--)
+    {
+        int digit = (arr[i] / exp) % 10;
+        output[count[digit] - 1] = arr[i];
+        count[digit]--;
+
+        if (step_time_ms != 0)
+        {
+            visualizer.VisualizeArray(output, count[digit]);
+            yield return new WaitForSeconds(step_time_ms / 1000f);
+        }
+    }
+
+    if (step_time_ms == 0)
+    {
+        // Show after output is built
+        visualizer.VisualizeArray(output, exp);
+        yield return null;
+    }
+
+    // Copy back
+    for (int i = 0; i < n; i++)
+        arr[i] = output[i];
+
+    if (step_time_ms == 0)
+    {
+        // Show after copy back
+        visualizer.VisualizeArray(arr, exp);
+        yield return null;
+    }
+}
+
 
 }
 

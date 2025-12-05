@@ -11,6 +11,9 @@ public enum SortType
     HeapSort,
     CocktailSort,
     BogoSort,
+    PancakeSort,
+    BitonicSort,
+    RadixSort,
     last
 }
 
@@ -74,6 +77,15 @@ public class SortingManager : MonoBehaviour
             break;
             case SortType.BogoSort:
             StartCoroutine(Sort_Animated.BogoSort(visualizer, arr, settings.step_time_ms));
+            break;
+            case SortType.PancakeSort:
+            StartCoroutine(Sort_Animated.PancakeSort(visualizer, arr, settings.step_time_ms));
+            break;
+            case SortType.BitonicSort:
+            StartCoroutine(Sort_Animated.BitonicSort(visualizer, arr, settings.step_time_ms));
+            break;
+            case SortType.RadixSort:
+            StartCoroutine(Sort_Animated.RadixSort(visualizer, arr, settings.step_time_ms));
             break;
         }
     }

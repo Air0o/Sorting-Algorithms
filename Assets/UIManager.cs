@@ -46,6 +46,7 @@ public class UIManager : MonoBehaviour
         menu_screen.SetActive(true);
         manager.Stop();
         animation_screen.SetActive(false);
+        FindAnyObjectByType<AudioSource>().Stop();
     }
 
     public void UpdateStats(SortStats stats)
